@@ -44,5 +44,8 @@ async def github(ctx):
 @bot.command()
 async def echo(ctx, *, arg):
     await ctx.send(arg)
+    timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    print(f'{timestamp} - {ctx.author}: !echo {arg}')
+
 
 bot.run(TOKEN)
