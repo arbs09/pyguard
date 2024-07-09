@@ -1,7 +1,7 @@
 import os
+from dotenv import load_dotenv
 import discord
 from discord.ext import commands
-from dotenv import load_dotenv
 from datetime import datetime
 
 load_dotenv()
@@ -27,17 +27,19 @@ async def on_message(message):
         timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         print(f'{timestamp} - {message.author}: hi')
 
-    elif message.content.startswith('!info'):
-        await message.channel.send('This is a discord bot, coded in python!\nGithub: https://github.com/arbs09/python-discordbot')
-        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        print(f'{timestamp} - {message.author}: !info')
-
-    elif message.content.startswith('!github'):
-        await message.channel.send('Github: https://github.com/arbs09/python-discordbot')
-        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        print(f'{timestamp} - {message.author}: !github')
-
     await bot.process_commands(message)
+
+@bot.command(name='info')
+async def info(ctx):
+    await ctx.send('This is a discord bot, coded in python!\nGithub: https://github.com/arbs09/python-discordbot')
+    timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    print(f'{timestamp} - {ctx.author}: !info')
+
+@bot.command(name='github')
+async def github(ctx):
+    await ctx.send('Github: https://github.com/arbs09/python-discordbot')
+    timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    print(f'{timestamp} - {ctx.author}: !github')
 
 @bot.command()
 async def test(ctx, *, arg):
