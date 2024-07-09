@@ -10,7 +10,7 @@ TOKEN = os.getenv('DISCORD_TOKEN')
 intents = discord.Intents.default()
 intents.message_content = True
 
-bot = commands.Bot(command_prefix='!', intents=intents)
+bot = commands.Bot(command_prefix='!', intents=intents, help_command=None)
 
 @bot.event
 async def on_ready():
@@ -28,6 +28,19 @@ async def on_message(message):
         print(f'{timestamp} - {message.author}: hi')
 
     await bot.process_commands(message)
+
+@bot.command(name='help')
+async def help(ctx):
+    embed = discord.Embed(
+                      description="```\n!help   | You are here\n!Github | Shows Link to the Bots Github\n!info   | Shows Information about the Bot\n```",
+                      colour=0x00b0f4)
+
+    embed.set_author(name="Python Discord Bot",
+                 url="https://github.com/arbs09/python-discordbot")
+
+    await ctx.send(embed=embed)
+    timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    print(f'{timestamp} - {ctx.author}: !help')
 
 @bot.command(name='info')
 async def info(ctx):
