@@ -6,16 +6,24 @@ from datetime import datetime
 
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
+GUILD_ID = int(os.getenv('GUILD_ID'))
 
 intents = discord.Intents.default()
-intents.message_content = True
+intents.messages = True
 
 bot = commands.Bot(command_prefix='!', intents=intents)
 
 @bot.event
 async def on_ready():
     print(f'The Bot is logged in as {bot.user}')
-    print('Log:')
+
+    if len(bot.guilds) != 1:
+        print('Bot is not in exactly one guild. Exiting...')
+        await bot.close()
+        return
+
+    guild = bot.get_guild(GUILD_ID)
+    print(f'Connected to guild: {guild.name} (ID: {guild.id})')
 
 @bot.event
 async def on_message(message):
