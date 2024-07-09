@@ -15,7 +15,7 @@ intents.message_content = True
 
 bot = commands.Bot(command_prefix='!', intents=intents, help_command=None)
 
-start_time = datetime.utcnow()
+start_time = datetime.now()
 
 def is_owner(ctx):
     return ctx.author.id == 706119023422603335
@@ -91,12 +91,8 @@ async def help(ctx):
     embed.add_field(name="!github", value="Shows link to the bot's GitHub repository", inline=False)
     embed.add_field(name="!info", value="Shows information about the bot", inline=False)
     embed.add_field(name="!getuserid", value="Shows your userid", inline=False)
+    embed.add_field(name="!uptime", value="Shows the Uptime of the bot", inline=False)
 
-    embed.set_author(
-        name="Python Discord Bot",
-        url="https://github.com/arbs09/python-discordbot"
-    )
-    
     await ctx.send(embed=embed)
     timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     print(f'{timestamp} - {ctx.author}: !help')
@@ -104,27 +100,43 @@ async def help(ctx):
 @bot.command(name='info', description="Shows information about the bot")
 async def info(ctx):
     await ctx.message.delete()
-    await ctx.send('This is a discord bot, coded in Python!\nGitHub: https://github.com/arbs09/python-discordbot')
+    embed = discord.Embed(
+        title="Python Discord Bot Information",
+        description="This is a discord bot, coded in Python!\nGitHub: https://github.com/arbs09/python-discordbot",
+        color=0x00b0f4
+    )
+    await ctx.send(embed=embed)
     timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     print(f'{timestamp} - {ctx.author}: !info')
 
 @bot.command(name='github', description="Shows link to the bot's GitHub repository")
 async def github(ctx):
     await ctx.message.delete()
-    await ctx.send('GitHub: https://github.com/arbs09/python-discordbot')
+    embed = discord.Embed(
+        title="Python Discord Bot Github",
+        description="GitHub: https://github.com/arbs09/python-discordbot",
+        color=0x00b0f4
+    )
+    await ctx.send(embed=embed)
     timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     print(f'{timestamp} - {ctx.author}: !github')
 
 @bot.command()
 async def uptime(ctx):
     await ctx.message.delete()
-    current_time = datetime.utcnow()
+    
+    current_time = datetime.now()
     uptime = current_time - start_time
-
+    
     hours, remainder = divmod(int(uptime.total_seconds()), 3600)
     minutes, seconds = divmod(remainder, 60)
 
-    await ctx.send(f'Uptime: {hours} hours, {minutes} minutes, {seconds} seconds')
+    embed = discord.Embed(
+        title="Python Discord Bot Uptime",
+        description=f"{hours} hours, {minutes} minutes, {seconds} seconds",
+        color=0x00b0f4
+    )
+    await ctx.send(embed=embed)
 
 # tools
 
