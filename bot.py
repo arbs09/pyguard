@@ -12,11 +12,8 @@ client = discord.Client(command_prefix='!', intents=intents)
 
 @client.event
 async def on_ready():
-    for guild in client.guilds:
-        if guild.name == GUILD:
-            break
     print('The Bot is logged in as {0.user}'.format(client))
-
+ 
     print('Log:')
     
 @client.event
