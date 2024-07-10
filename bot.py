@@ -7,15 +7,47 @@ load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
 URLHAUS_API_URL = 'https://urlhaus-api.abuse.ch/v1/url/'
 
+domains_url = 'https://raw.githubusercontent.com/arbs09/python-discordbot/main/blacklist/domains.txt'
+phrases_url = 'https://raw.githubusercontent.com/arbs09/python-discordbot/main/blacklist/phrases.txt'
+
+def fetch_list(url):
+    response = requests.get(url)
+    if response.status_code == 200:
+        return response.text.splitlines()
+    else:
+        print(f"Failed to fetch data from {url}")
+        return []
+
+blacklisted_domains = fetch_list(domains_url)
+print("updated Blacklisted Domains")
+
+blacklisted_phrases = fetch_list(phrases_url)
+print("updated Blacklisted Phrases")
+
+
 intents = discord.Intents.default()
 intents.message_content = True
+intents.messages = True
+intents.guilds = True
 
 bot = commands.Bot(command_prefix='!', intents=intents, help_command=None)
 
+locked_channels = []
+
 start_time = datetime.now()
+
+try:
+    with open('locked_channels.json', 'r') as f:
+        locked_channels = json.load(f)
+except FileNotFoundError:
+    locked_channels = []
 
 def is_owner(ctx):
     return ctx.author.id == 706119023422603335
+
+def save_locked_channels():
+    with open('locked_channels.json', 'w') as f:
+        json.dump(locked_channels, f)
 
 async def change_status():
     await bot.wait_until_ready()
@@ -98,10 +130,10 @@ async def on_message(message):
     if message.author == bot.user:
         return
 
-    if message.content.startswith('hi'):
-        await message.channel.send('Hello!')
-        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        print(f'{timestamp} - {message.author}: hi')
+
+    if message.channel.id in locked_channels and not message.content.startswith('!unlock'):
+        await message.delete()
+        return
 
     urls = url_pattern.findall(message.content)
     
@@ -109,12 +141,31 @@ async def on_message(message):
         is_bad = await is_url_safe_urlhaus(url)
         if is_bad:
             try:
+                timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                 await message.delete()
-                print(f'{message.author} Postet a bad url')
+                print(f'{timestamp}: {message.author} Postet a bad url (urlhaus)')
                 break
             except discord.Forbidden:
-                print(f"Could not delete message due to permissions in channel: {message.channel.name}")
+                print(f"{timestamp}: Could not delete message due to permissions in channel: {message.channel.name}")
     
+    for domain in blacklisted_domains:
+        if domain in message.content:
+            timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            await message.delete()
+            print(f'{timestamp}: {message.author} Postet a bad url (blacklistet domains)')
+            return
+    
+    for phrase in blacklisted_phrases:
+        if phrase in message.content:
+            timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            await message.delete()
+            print(f'{timestamp}: {message.author} Postet a bad message (blacklistet phrases)')
+            return
+    
+    if message.content.startswith('hi'):
+        await message.channel.send('Hello!')
+        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        print(f'{timestamp} - {message.author}: hi')
     
     await bot.process_commands(message)
 
@@ -132,7 +183,7 @@ async def help(ctx):
     embed.add_field(name="!getuserid", value="Shows your userid", inline=False)
     embed.add_field(name="!uptime", value="Shows the Uptime of the bot", inline=False)
 
-    await ctx.send(embed=embed)
+    await ctx.send(embed=embed, delete_after=120)
     timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     print(f'{timestamp} - {ctx.author}: !help')
 
@@ -144,7 +195,7 @@ async def info(ctx):
         description="This is a discord bot, coded in Python!\nGitHub: https://github.com/arbs09/python-discordbot",
         color=0x00b0f4
     )
-    await ctx.send(embed=embed)
+    await ctx.send(embed=embed, delete_after=60)
     timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     print(f'{timestamp} - {ctx.author}: !info')
 
@@ -156,7 +207,7 @@ async def github(ctx):
         description="GitHub: https://github.com/arbs09/python-discordbot",
         color=0x00b0f4
     )
-    await ctx.send(embed=embed)
+    await ctx.send(embed=embed, delete_after=60)
     timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     print(f'{timestamp} - {ctx.author}: !github')
 
@@ -175,7 +226,7 @@ async def uptime(ctx):
         description=f"{hours} hours, {minutes} minutes, {seconds} seconds",
         color=0x00b0f4
     )
-    await ctx.send(embed=embed)
+    await ctx.send(embed=embed, delete_after=60)
 
 
 # games
@@ -192,13 +243,17 @@ async def slots(ctx):
         result = spin_slot_machine()
 
         if all(symbol == result[0] for symbol in result):
-            message = "Jackpot! 🎉"
+            message = "x3 👏👏👏"
         elif result.count("🍒") == 3:
             message = "Triple cherries! 🍒🍒🍒"
         elif result.count("🍋") == 3:
             message = "Triple lemons! 🍋🍋🍋"
         elif result.count("🍀") == 3:
             message = "Good Luck 🍀🍀🍀"
+        elif result.count("💸") == 3:
+            message = "🎉🎉🎉 Jackpot! 🎉🎉🎉"
+            timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            print(f'{timestamp}: 🎉🎉🎉 {ctx.author} hit a Jackpot! 🎉🎉🎉')
         else:
             message = "Better luck next time!"
 
@@ -212,24 +267,69 @@ async def slots(ctx):
         def check(reaction, user):
             return user == ctx.author and str(reaction.emoji) == '🔄' and reaction.message.id == message.id
 
-        # Use the wait_for coroutine directly without unpacking into reaction, user
         await bot.wait_for('reaction_add', timeout=60.0, check=check)
         await message.delete()
         await slots(ctx)
 
     except Exception as e:
-        await ctx.send(f"An error occurred: {type(e).__name__} - {e}")
+        await message.delete()
+        await ctx.message.delete()
 
 # tools
 @bot.command(name='getuserid', description="Get the ID of the user running the command")
 async def get_user_id(ctx):
     user_id = ctx.author.id
     await ctx.message.delete()
-    await ctx.send(f'Your user ID is: {user_id}')
+    await ctx.send(f'Your user ID is: {user_id}', delete_after=60)
     timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     print(f'{timestamp} - {ctx.author}: !getuserid')
 
 # Owner Commands
+@bot.command(name='clearall', description="Clear all messages in a chat")
+async def clearall(ctx):
+    if not is_owner(ctx):
+        await ctx.message.delete()
+        return
+     
+    await ctx.message.delete()
+    await ctx.send("Clearing all messages...", delete_after=2)
+    
+    def check_msg(msg):
+        return True
+    
+    while True:
+        deleted = await ctx.channel.purge(limit=100, check=check_msg)
+        if len(deleted) < 100:
+            break
+    
+    await ctx.send("All messages have been cleared!", delete_after=10)
+
+@bot.command()
+async def lock(ctx):
+    if not is_owner(ctx):
+        await ctx.message.delete()
+        return
+    await ctx.message.delete()
+    if ctx.channel.id not in locked_channels:
+        locked_channels.append(ctx.channel.id)
+        save_locked_channels()
+        await ctx.send(f'{ctx.channel.mention} is now locked.')
+    else:
+        await ctx.send(f'{ctx.channel.mention} is already locked.', delete_after=10)
+
+@bot.command()
+async def unlock(ctx):
+    if not is_owner(ctx):
+        await ctx.message.delete()
+        return
+    await ctx.message.delete()
+    if ctx.channel.id in locked_channels:
+        locked_channels.remove(ctx.channel.id)
+        save_locked_channels()
+        await ctx.send(f'{ctx.channel.mention} is now unlocked.', delete_after=600)
+    else:
+        await ctx.send(f'{ctx.channel.mention} is not locked., delete_after=10')
+
 @bot.command(name='offline', description="Sets bot's status to offline")
 async def offline(ctx):
     if not is_owner(ctx):
