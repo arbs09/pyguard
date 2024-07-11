@@ -163,8 +163,8 @@ async def get_user_id(ctx: discord.ApplicationContext):
 
     await ctx.respond(embed=embed, ephemeral=True)
 
-@bot.slash_command(name='github', description="Shows link to the bot's GitHub repository")
-async def github(ctx: discord.ApplicationContext):
+@bot.slash_command(name='slots', description="Shows link to the bot's GitHub repository")
+async def slots(ctx: discord.ApplicationContext):
 
     embed = discord.Embed(
         title="Python Discord Bot Slots",
