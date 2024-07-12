@@ -37,10 +37,10 @@ def save_levels():
 xp_requirements = [2, 10, 20, 40, 75, 100]  # Example requirements
 
 # Function to add XP
-def add_xp(user_id, xp):
+def add_xp(user_id, author_name, xp):
     user_id = str(user_id)
     if user_id not in levels:
-        levels[user_id] = {'xp': 0, 'level': 1}
+        levels[user_id] = {'xp': 0, 'level': 1, 'name': author_name}
     
     levels[user_id]['xp'] += xp
 
@@ -48,6 +48,9 @@ def add_xp(user_id, xp):
     while levels[user_id]['level'] - 1 < len(xp_requirements) and levels[user_id]['xp'] >= xp_requirements[levels[user_id]['level'] - 1]:
         levels[user_id]['xp'] -= xp_requirements[levels[user_id]['level'] - 1]
         levels[user_id]['level'] += 1
+
+    # Update author name (optional, in case it changes)
+    levels[user_id]['name'] = author_name
 
     save_levels()
 
@@ -107,7 +110,8 @@ async def on_ready():
 async def on_message(message):
     if message.author.bot:
         return
-    add_xp(message.author.id, 1)
+    print(f"{message.author.avatar}")
+    add_xp(message.author.id, message.author.name, 1)
 
 @bot.slash_command(name="help", description="Get help from the Bot")
 async def help(ctx: discord.ApplicationContext):
@@ -119,35 +123,10 @@ async def help(ctx: discord.ApplicationContext):
     embed.add_field(name="/help", value="Shows this message", inline=False)
     embed.add_field(name="/tools", value="Get a list of the tools of the bot", inline=False)
     embed.add_field(name="/games", value="Get a list of the games of the bot", inline=False)
+    embed.add_field(name="/modtools", value="Get a list of the tools for moderators of the bot", inline=False)
     embed.add_field(name="/github", value="Shows link to the bot's GitHub repository", inline=False)
     embed.add_field(name="/uptime", value="Shows the Uptime of the bot", inline=False)
-    embed.add_field(name="/getgloballevel", value="Check your global level and XP", inline=False)
 
-
-    await ctx.respond(embed=embed, ephemeral=True)
-
-@bot.slash_command(name="tools", description="Get a list of the tools of the bot")
-async def tools(ctx: discord.ApplicationContext):
-    embed = discord.Embed(
-        title="Python Discord Bot",
-        description="Tools:",
-        color=0x00b0f4
-    )
-
-    embed.add_field(name="/getuserid", value="Get your discord user id", inline=False)
-    embed.add_field(name="/getgloballevel", value="Check your global level and XP", inline=False)
-
-    await ctx.respond(embed=embed, ephemeral=True)
-
-@bot.slash_command(name="games", description="Get a list of the games of the bot")
-async def games(ctx: discord.ApplicationContext):
-    embed = discord.Embed(
-        title="Python Discord Bot",
-        description="Games:",
-        color=0x00b0f4
-    )
-
-    embed.add_field(name="/slots", value="Play slots", inline=False)
 
     await ctx.respond(embed=embed, ephemeral=True)
 
@@ -191,41 +170,18 @@ async def changestatus(ctx: discord.ApplicationContext):
     await ctx.respond(embed=embed, ephemeral=True)
     await change_status()
 
-@bot.slash_command(name='getuserid', description="Get the ID of the user running the command")
-async def get_user_id(ctx: discord.ApplicationContext):
-    user_id = ctx.author.id
 
+@bot.slash_command(name="games", description="Get a list of the games of the bot")
+async def games(ctx: discord.ApplicationContext):
     embed = discord.Embed(
-        title="Your User ID:",
-        description=f"{user_id}",
+        title="Python Discord Bot",
+        description="Games:",
         color=0x00b0f4
     )
+
+    embed.add_field(name="/slots", value="Play slots", inline=False)
 
     await ctx.respond(embed=embed, ephemeral=True)
-
-
-@bot.slash_command(name="getgloballevel", description="Check your global level and XP")
-async def getgloballevel(ctx: discord.ApplicationContext):
-    user_id = str(ctx.author.id)
-    if user_id in levels:
-        user_level = levels[user_id]['level']
-        user_xp = levels[user_id]['xp']
-
-        embed = discord.Embed(
-        title="Python Discord Bot Global Level",
-        description=f"{ctx.author.mention}, you are at level {user_level} with {user_xp} XP globaly.",
-        color=0x00b0f4
-    )
-        
-        noxpembed = discord.Embed(
-        title="Python Discord Bot Global Level",
-        description=f"{ctx.author.mention},you have no XP yet.",
-        color=0x00b0f4
-    )
-        
-        await ctx.respond(embed=embed, ephemeral=True)
-    else:
-        await ctx.respond(embed=noxpembed, ephemeral=True)
 
 @bot.slash_command(name='slots', description="Shows link to the bot's GitHub repository")
 async def slots(ctx: discord.ApplicationContext):
@@ -238,5 +194,81 @@ async def slots(ctx: discord.ApplicationContext):
 
     await ctx.respond(embed=embed, ephemeral=True)
 
+
+@bot.slash_command(name="tools", description="Get a list of the tools of the bot")
+async def tools(ctx: discord.ApplicationContext):
+    embed = discord.Embed(
+        title="Python Discord Bot",
+        description="Tools:",
+        color=0x00b0f4
+    )
+
+    embed.add_field(name="/getuserid", value="Get your discord user id", inline=False)
+    embed.add_field(name="/getgloballevel", value="Check your global level and XP", inline=False)
+
+    await ctx.respond(embed=embed, ephemeral=True)
+
+@bot.slash_command(name='getuserid', description="Get the ID of the user running the command")
+async def get_user_id(ctx: discord.ApplicationContext):
+    user_id = ctx.author.id
+
+    embed = discord.Embed(
+        title="Your User ID:",
+        description=f"{user_id}",
+        color=0x00b0f4
+    )
+
+    await ctx.respond(embed=embed, ephemeral=True)
+
+@bot.slash_command(name="getgloballevel", description="Check your global level and XP")
+async def getgloballevel(ctx: discord.ApplicationContext):
+    user_id = str(ctx.author.id)
+
+    noxpembed = discord.Embed(
+        title="Python Discord Bot Global Level",
+        description=f"{ctx.author.mention}, you have no XP yet.",
+        color=0x00b0f4
+    )
+    
+    if user_id in levels:
+        user_level = levels[user_id]['level']
+        user_xp = levels[user_id]['xp']
+
+        embed = discord.Embed(
+            title="Python Discord Bot Global Level",
+            description=f"{ctx.author.mention}, you are at level {user_level} with {user_xp} XP globally.",
+            color=0x00b0f4
+        )
+        
+        await ctx.respond(embed=embed, ephemeral=True)
+    else:
+        await ctx.respond(embed=noxpembed, ephemeral=True)
+
+
+
+@bot.slash_command(name="modtools", description="Get a list of the tools for moderators of the bot")
+async def games(ctx: discord.ApplicationContext):
+    embed = discord.Embed(
+        title="Python Discord Bot",
+        description="Mod tools:",
+        color=0x00b0f4
+    )
+
+    embed.add_field(name="/cleanup", value="Clear messages in a channel", inline=False)
+
+    await ctx.respond(embed=embed, ephemeral=True)
+
+@bot.slash_command(name='cleanup', description="Clear messages in a channel")
+async def clear(ctx: discord.ApplicationContext, amount: int):
+    if not ctx.author.guild_permissions.manage_messages:
+        await ctx.respond("You don't have permission to use this command.", ephemeral=True)
+        return
+    
+    if amount > 100:
+        await ctx.respond("You can only delete up to 100 messages at a time.", ephemeral=True)
+        return
+
+    deleted = await ctx.channel.purge(limit=amount)
+    await ctx.respond(f'Deleted {len(deleted)} messages.', ephemeral=True)
 
 bot.run(TOKEN)
