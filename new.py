@@ -4,6 +4,7 @@ import random
 import asyncio
 import requests
 import re
+import json
 from dotenv import load_dotenv
 from discord.ext import commands
 from datetime import datetime
@@ -19,6 +20,36 @@ TOKEN = os.getenv('DISCORD_TOKEN')
 
 # Initialize the bot
 bot = discord.Bot()
+
+# Load or create levels.json
+if os.path.exists('levels.json'):
+    with open('levels.json', 'r') as f:
+        levels = json.load(f)
+else:
+    levels = {}
+
+# Save levels to JSON file
+def save_levels():
+    with open('levels.json', 'w') as f:
+        json.dump(levels, f, indent=4)
+
+# Define XP requirements for each level
+xp_requirements = [2, 10, 20, 40, 75, 100]  # Example requirements
+
+# Function to add XP
+def add_xp(user_id, xp):
+    user_id = str(user_id)
+    if user_id not in levels:
+        levels[user_id] = {'xp': 0, 'level': 1}
+    
+    levels[user_id]['xp'] += xp
+
+    # Check for level up
+    while levels[user_id]['level'] - 1 < len(xp_requirements) and levels[user_id]['xp'] >= xp_requirements[levels[user_id]['level'] - 1]:
+        levels[user_id]['xp'] -= xp_requirements[levels[user_id]['level'] - 1]
+        levels[user_id]['level'] += 1
+
+    save_levels()
 
 def is_owner(ctx):
     """Checks if the message author is the bot owner."""
@@ -42,10 +73,10 @@ async def change_status():
     ]
 
     listening_statuses = [
-        "to Music",
-        "to a Podcast",
-        "to Radio",
-        "to Darknet Diaries"
+        "Music",
+        "a Podcast",
+        "Radio",
+        "Darknet Diaries"
     ]
 
     while not bot.is_closed():
@@ -71,6 +102,12 @@ async def on_ready():
     await bot.change_presence(status=discord.Status.online)
     bot.loop.create_task(change_status())
 
+# add level counting
+@bot.event
+async def on_message(message):
+    if message.author.bot:
+        return
+    add_xp(message.author.id, 1)
 
 @bot.slash_command(name="help", description="Get help from the Bot")
 async def help(ctx: discord.ApplicationContext):
@@ -84,6 +121,8 @@ async def help(ctx: discord.ApplicationContext):
     embed.add_field(name="/games", value="Get a list of the games of the bot", inline=False)
     embed.add_field(name="/github", value="Shows link to the bot's GitHub repository", inline=False)
     embed.add_field(name="/uptime", value="Shows the Uptime of the bot", inline=False)
+    embed.add_field(name="/getgloballevel", value="Check your global level and XP", inline=False)
+
 
     await ctx.respond(embed=embed, ephemeral=True)
 
@@ -96,6 +135,7 @@ async def tools(ctx: discord.ApplicationContext):
     )
 
     embed.add_field(name="/getuserid", value="Get your discord user id", inline=False)
+    embed.add_field(name="/getgloballevel", value="Check your global level and XP", inline=False)
 
     await ctx.respond(embed=embed, ephemeral=True)
 
@@ -156,12 +196,36 @@ async def get_user_id(ctx: discord.ApplicationContext):
     user_id = ctx.author.id
 
     embed = discord.Embed(
-        title="Python Discord Bot Status Change",
-        description=f"Your user ID is: {user_id}",
+        title="Your User ID:",
+        description=f"{user_id}",
         color=0x00b0f4
     )
 
     await ctx.respond(embed=embed, ephemeral=True)
+
+
+@bot.slash_command(name="getgloballevel", description="Check your global level and XP")
+async def getgloballevel(ctx: discord.ApplicationContext):
+    user_id = str(ctx.author.id)
+    if user_id in levels:
+        user_level = levels[user_id]['level']
+        user_xp = levels[user_id]['xp']
+
+        embed = discord.Embed(
+        title="Python Discord Bot Global Level",
+        description=f"{ctx.author.mention}, you are at level {user_level} with {user_xp} XP globaly.",
+        color=0x00b0f4
+    )
+        
+        noxpembed = discord.Embed(
+        title="Python Discord Bot Global Level",
+        description=f"{ctx.author.mention},you have no XP yet.",
+        color=0x00b0f4
+    )
+        
+        await ctx.respond(embed=embed, ephemeral=True)
+    else:
+        await ctx.respond(embed=noxpembed, ephemeral=True)
 
 @bot.slash_command(name='slots', description="Shows link to the bot's GitHub repository")
 async def slots(ctx: discord.ApplicationContext):
