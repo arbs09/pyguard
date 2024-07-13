@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Search Engine</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        h1, h2, h3 {
+            text-align: center;
+        }
+        form {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        label {
+            font-weight: bold;
+        }
+        ul, ol {
+            list-style-type: none;
+            padding: 0;
+        }
+        li {
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            padding: 10px;
+            border-radius: 5px;
+        }
+    </style>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            $('#search-form').submit(function(event) {
+                event.preventDefault();
+                var query = $('#query').val();
+                fetchSearchResults(query);
+            });
+
+            function fetchSearchResults(query) {
+                $.ajax({
+                    url: '/search',
+                    type: 'GET',
+                    data: {
+                        query: query
+                    },
+                    success: function(response) {
+                        displaySearchResults(response);
+                    },
+                    error: function(error) {
+                        console.error('Error fetching search results:', error);
+                    }
+                });
+            }
+
+            function displaySearchResults(results) {
+                $('#search-results').empty();
+                if (results.length > 0) {
+                    results.forEach(function(result) {
+                        for (const [key, value] of Object.entries(result)) {
+                            $('#search-results').append(`
+                                <li>
+                                    <strong>Name:</strong> ${value.name}<br>
+                                    <strong>ID:</strong> ${key}<br>
+                                    <strong>Level:</strong> ${value.level}<br>
+                                    <strong>XP:</strong> ${value.xp}<br>
+                                    <strong>First Time Logged:</strong> ${value.first_login}<br>
+                                    <strong>Last Time Logged:</strong> ${value.last_login}
+                                </li>
+                            `);
+                        }
+                    });
+                } else {
+                    $('#search-results').append('<li>No results found</li>');
+                }
+            }
+
+            function fetchTop10ByXP() {
+                $.ajax({
+                    url: '/top10xp',
+                    type: 'GET',
+                    success: function(response) {
+                        displayTop10ByXP(response);
+                    },
+                    error: function(error) {
+                        console.error('Error fetching top 10 by XP:', error);
+                    }
+                });
+            }
+
+            function displayTop10ByXP(users) {
+                $('#top-10-by-xp').empty();
+                if (users.length > 0) {
+                    users.forEach(function(user) {
+                        $('#top-10-by-xp').append(`
+                            <li>${user.name} (ID: ${user.id}) - XP: ${user.xp}</li>
+                        `);
+                    });
+                } else {
+                    $('#top-10-by-xp').append('<li>No users found</li>');
+                }
+            }
+
+            // Initial fetch of top 10 users by XP
+            fetchTop10ByXP();
+            // Refresh top 10 users by XP every 60 seconds
+            setInterval(fetchTop10ByXP, 60000);
+        });
+    </script>
+</head>
+<body>
+    <h1>Bot Website</h1>
+    <h2>Top 10 Users by XP:</h2>
+    <ol id="top-10-by-xp">
+        <!-- Top 10 users by XP will be displayed here -->
+    </ol>
+    <hr>
+    <h2>Level Search Engine</h2>
+    <form id="search-form">
+        <input type="text" id="query" name="query">
+        <br>
+        <br>
+        <input type="submit" value="Search">
+    </form>
+    <h3>Search results:</h3>
+    <hr>
+    <div id="search-results">
+        <!-- Search results will be displayed here -->
+    </div>
+</body>
+</html>

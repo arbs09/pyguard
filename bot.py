@@ -45,17 +45,19 @@ xp_requirements = [2, 10, 20, 40, 75, 100]  # Example requirements
 # Function to add XP
 def add_xp(user_id, author_name, xp):
     user_id = str(user_id)
-    if user_id not in levels:
-        levels[user_id] = {'xp': 0, 'level': 1, 'name': author_name}
+    current_time = datetime.now().isoformat()
     
+    if user_id not in levels:
+        levels[user_id] = {'xp': 0, 'level': 1, 'name': author_name, 'first_login': current_time, 'last_login': current_time}
+    else:
+        levels[user_id]['last_login'] = current_time
+
     levels[user_id]['xp'] += xp
 
-    # Check for level up
+    # Check for level up without resetting XP
     while levels[user_id]['level'] - 1 < len(xp_requirements) and levels[user_id]['xp'] >= xp_requirements[levels[user_id]['level'] - 1]:
-        levels[user_id]['xp'] -= xp_requirements[levels[user_id]['level'] - 1]
         levels[user_id]['level'] += 1
 
-    # Update author name (optional, in case it changes)
     levels[user_id]['name'] = author_name
 
     save_levels()
