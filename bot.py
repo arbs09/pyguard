@@ -18,8 +18,13 @@ load_dotenv()
 # Retrieve the bot token from the environment variable
 TOKEN = os.getenv('DISCORD_TOKEN')
 
+intents = discord.Intents.default()
+intents.guilds = True
+intents.members = True
+intents.presences = True
+
 # Initialize the bot
-bot = discord.Bot()
+bot = discord.Bot(intents=intents)
 
 # Load or create levels.json
 if os.path.exists('levels.json'):
@@ -31,6 +36,7 @@ else:
 # Save levels to JSON file
 def save_levels():
     with open('levels.json', 'w') as f:
+        
         json.dump(levels, f, indent=4)
 
 # Define XP requirements for each level
@@ -73,6 +79,7 @@ async def change_status():
     watching_statuses = [
         "YouTube",
         "a Movie",
+        "you",
     ]
 
     listening_statuses = [
@@ -102,6 +109,44 @@ async def change_status():
 @bot.event
 async def on_ready():
     print(f"We have logged in as {bot.user}")
+
+    guilds_data = []
+
+    print('Guilds:')
+    for guild in bot.guilds:
+        members_data = []
+        async for member in guild.fetch_members(limit=None):
+            member_data = {
+                'id': member.id,
+                'name': member.name,
+                'is_bot': member.bot,
+                'display_name': member.display_name,
+                'top_role': member.top_role.id,
+                'joined_at': member.joined_at.isoformat() if member.joined_at else None
+            }
+            members_data.append(member_data)
+
+        guild_data = {
+            'guild_id': guild.id,
+            'guild_name': guild.name,
+            'member_count': guild.member_count,
+            'owner_id': guild.owner_id,
+            'description': guild.description,
+            'preferred_locale': guild.preferred_locale,
+            'verification_level': str(guild.verification_level),
+            'explicit_content_filter': str(guild.explicit_content_filter),
+            'mfa_level': str(guild.mfa_level),
+            'features': guild.features,
+            'members': members_data
+        }
+        guilds_data.append(guild_data)
+    
+    with open('guilds.json', 'w') as f:
+        json.dump(guilds_data, f, indent=4)
+
+        print(f'- {guild.name} (ID: {guild.id})')
+        print(f'    - Member count: {guild.member_count}')
+        
     await bot.change_presence(status=discord.Status.online)
     bot.loop.create_task(change_status())
 
