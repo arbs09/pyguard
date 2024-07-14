@@ -1,14 +1,21 @@
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify, render_template, redirect
 import json
 from datetime import datetime
 import threading
 import time
+import os
+from dotenv import load_dotenv
 
 app = Flask(__name__)
 
+load_dotenv()
+
+# Retrieve the bot token from the environment variable
+Invite = os.getenv('DISCORD_INVITE')
+
 # Function to load JSON data from file
 def load_data():
-    with open('levels.json') as f:
+    with open('users.json') as f:
         return json.load(f)
 
 # Load JSON data initially
@@ -47,7 +54,7 @@ def search():
             results.append({query: data[query]})
     else:  # Otherwise, assume it's a name
         for key, value in data.items():
-            if value.get('name') == query:
+            if query.lower() in value.get('name', '').lower():
                 results.append({key: value})
     
     # Format dates before passing to template
@@ -62,6 +69,10 @@ def search():
 def top_10_by_xp():
     top_10 = get_top_10_by_xp()
     return jsonify(top_10)
+
+@app.route('/invite')
+def invite():
+    return redirect(Invite)
 
 def update_data_periodically():
     global data

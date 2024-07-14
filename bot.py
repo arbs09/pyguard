@@ -26,41 +26,54 @@ intents.presences = True
 # Initialize the bot
 bot = discord.Bot(intents=intents)
 
-# Load or create levels.json
-if os.path.exists('levels.json'):
-    with open('levels.json', 'r') as f:
-        levels = json.load(f)
+# Load or create user_data.json
+if os.path.exists('users.json'):
+    with open('users.json', 'r') as f:
+        user_data = json.load(f)
 else:
-    levels = {}
+    user_data = {}
 
-# Save levels to JSON file
-def save_levels():
-    with open('levels.json', 'w') as f:
+# Save user_data to JSON file
+def save_user_data():
+    with open('users.json', 'w') as f:
         
-        json.dump(levels, f, indent=4)
+        json.dump(user_data, f, indent=4)
 
 # Define XP requirements for each level
-xp_requirements = [2, 10, 20, 40, 75, 100]  # Example requirements
+xp_requirements = [20, 50, 100, 400, 1000, 1500]
 
 # Function to add XP
-def add_xp(user_id, author_name, xp):
+def add_xp(user_id, author_name, xp, message_time=None):
     user_id = str(user_id)
     current_time = datetime.now().isoformat()
     
-    if user_id not in levels:
-        levels[user_id] = {'xp': 0, 'level': 1, 'name': author_name, 'first_login': current_time, 'last_login': current_time}
-    else:
-        levels[user_id]['last_login'] = current_time
+    if message_time is None:
+        message_time = current_time
 
-    levels[user_id]['xp'] += xp
+    if user_id not in user_data:
+        user_data[user_id] = {
+            'xp': 0,
+            'level': 1,
+            'name': author_name,
+            'display_name': '',
+            'first_login': message_time,
+            'last_login': message_time
+        }
+    else:
+        if 'first_login' not in user_data[user_id]:
+            user_data[user_id]['first_login'] = message_time
+        if 'last_login' not in user_data[user_id] or message_time > user_data[user_id]['last_login']:
+            user_data[user_id]['last_login'] = message_time
+
+    user_data[user_id]['xp'] += xp
 
     # Check for level up without resetting XP
-    while levels[user_id]['level'] - 1 < len(xp_requirements) and levels[user_id]['xp'] >= xp_requirements[levels[user_id]['level'] - 1]:
-        levels[user_id]['level'] += 1
+    while user_data[user_id]['level'] - 1 < len(xp_requirements) and user_data[user_id]['xp'] >= xp_requirements[user_data[user_id]['level'] - 1]:
+        user_data[user_id]['level'] += 1
 
-    levels[user_id]['name'] = author_name
+    user_data[user_id]['name'] = author_name
 
-    save_levels()
+    save_user_data()
 
 def is_owner(ctx):
     """Checks if the message author is the bot owner."""
@@ -72,7 +85,7 @@ async def change_status():
 
     playing_statuses = [
         'with fire',
-        'with discord.py',
+        'with pycord',
         'with Python',
         'a game',
         'with Linux',
@@ -148,7 +161,8 @@ async def on_ready():
 
         print(f'- {guild.name} (ID: {guild.id})')
         print(f'    - Member count: {guild.member_count}')
-        
+    
+    
     await bot.change_presence(status=discord.Status.online)
     bot.loop.create_task(change_status())
 
@@ -158,7 +172,7 @@ async def on_message(message):
     if message.author.bot:
         return
     print(f"{message.author.avatar}")
-    add_xp(message.author.id, message.author.name, 1)
+    add_xp(message.author.id, message.author.name, 10)
 
 @bot.slash_command(name="help", description="Get help from the Bot")
 async def help(ctx: discord.ApplicationContext):
@@ -193,15 +207,18 @@ async def uptime(ctx: discord.ApplicationContext):
     current_time = datetime.now()
     uptime = current_time - start_time
 
-    hours, remainder = divmod(int(uptime.total_seconds()), 3600)
+    weeks, remainder = divmod(int(uptime.total_seconds()), 604800) 
+    days, remainder = divmod(remainder, 86400)
+    hours, remainder = divmod(remainder, 3600)
     minutes, seconds = divmod(remainder, 60)
 
     embed = discord.Embed(
         title="Python Discord Bot Uptime",
-        description=f"{hours} hours, {minutes} minutes, {seconds} seconds",
+        description=f"{weeks} weeks, {days} days, {hours} hours, {minutes} minutes, {seconds} seconds",
         color=0x00b0f4
     )
     await ctx.respond(embed=embed, ephemeral=True)
+
 
 @bot.slash_command(name='changestatus', description="changes the status of the bot")
 async def changestatus(ctx: discord.ApplicationContext):
