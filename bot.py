@@ -62,7 +62,11 @@ def add_xp(user_id, author_name, xp, display_name, author_avatar, server_id, mes
             'level': 1,
             'name': author_name,
             'avatar': str(author_avatar),
-            'used_display_names': {},
+            'used_display_names': {server_id: [{
+                'display_name': display_name,
+                'first_seen': message_time,
+                'last_seen': message_time
+            }]},
             'first_login': message_time,
             'last_login': message_time
         }
@@ -71,6 +75,23 @@ def add_xp(user_id, author_name, xp, display_name, author_avatar, server_id, mes
             user_data[user_id]['first_login'] = message_time
         if 'last_login' not in user_data[user_id] or message_time > user_data[user_id]['last_login']:
             user_data[user_id]['last_login'] = message_time
+
+        if server_id not in user_data[user_id]['used_display_names']:
+            user_data[user_id]['used_display_names'][server_id] = []
+        
+        found = False
+        for display_name_entry in user_data[user_id]['used_display_names'][server_id]:
+            if display_name_entry['display_name'] == display_name:
+                display_name_entry['last_seen'] = message_time
+                found = True
+                break
+        
+        if not found:
+            user_data[user_id]['used_display_names'][server_id].append({
+                'display_name': display_name,
+                'first_seen': message_time,
+                'last_seen': message_time
+            })
 
     user_data[user_id]['xp'] += xp
 
@@ -81,24 +102,7 @@ def add_xp(user_id, author_name, xp, display_name, author_avatar, server_id, mes
     user_data[user_id]['name'] = author_name
     user_data[user_id]['avatar'] = str(author_avatar)
 
-    # Update used display names with server ID and last seen timestamp
-    if server_id not in user_data[user_id]['used_display_names']:
-        user_data[user_id]['used_display_names'][server_id] = []
-    
-    found = False
-    for display_name_entry in user_data[user_id]['used_display_names'][server_id]:
-        if display_name_entry['display_name'] == display_name:
-            display_name_entry['last_seen'] = message_time
-            found = True
-            break
-
-    if not found:
-        user_data[user_id]['used_display_names'][server_id].append({
-            'display_name': display_name,
-            'last_seen': message_time
-        })
-
-    save_user_data()
+    save_user_data() 
 
 def is_owner(ctx):
     """Checks if the message author is the bot owner."""
@@ -196,7 +200,6 @@ async def on_ready():
 async def on_message(message):
     if message.author.bot:
         return
-    print(f"{message.author.avatar}")
     add_xp(message.author.id, message.author.name, 10, message.author.display_name, message.author.avatar, message.guild.id)
 
 @bot.slash_command(name="help", description="Get help from the Bot")
@@ -319,9 +322,9 @@ async def getgloballevel(ctx: discord.ApplicationContext):
         color=0x00b0f4
     )
     
-    if user_id in levels:
-        user_level = levels[user_id]['level']
-        user_xp = levels[user_id]['xp']
+    if user_id in user_data:
+        user_level = user_data[user_id]['level']
+        user_xp = user_data[user_id]['xp']
 
         embed = discord.Embed(
             title="Python Discord Bot Global Level",
