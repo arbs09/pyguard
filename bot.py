@@ -5,9 +5,9 @@ import asyncio
 import requests
 import re
 import json
+from datetime import datetime
 from dotenv import load_dotenv
 from discord.ext import commands
-from datetime import datetime
 
 # Initialize the bot's start time
 start_time = datetime.now()
@@ -36,26 +36,33 @@ else:
 # Save user_data to JSON file
 def save_user_data():
     with open('users.json', 'w') as f:
-        
         json.dump(user_data, f, indent=4)
 
 # Define XP requirements for each level
 xp_requirements = [20, 50, 100, 400, 1000, 1500]
 
 # Function to add XP
-def add_xp(user_id, author_name, xp, message_time=None):
+def add_xp(user_id, author_name, xp, display_name, author_avatar, server_id, message_time=None):
     user_id = str(user_id)
+    server_id = str(server_id)
     current_time = datetime.now().isoformat()
     
     if message_time is None:
         message_time = current_time
+    else:
+        # Ensure message_time is in correct format
+        try:
+            datetime.fromisoformat(message_time)
+        except ValueError:
+            message_time = current_time
 
     if user_id not in user_data:
         user_data[user_id] = {
             'xp': 0,
             'level': 1,
             'name': author_name,
-            'display_name': '',
+            'avatar': str(author_avatar),
+            'used_display_names': {},
             'first_login': message_time,
             'last_login': message_time
         }
@@ -68,10 +75,28 @@ def add_xp(user_id, author_name, xp, message_time=None):
     user_data[user_id]['xp'] += xp
 
     # Check for level up without resetting XP
-    while user_data[user_id]['level'] - 1 < len(xp_requirements) and user_data[user_id]['xp'] >= xp_requirements[user_data[user_id]['level'] - 1]:
+    while user_data[user_id]['level'] <= len(xp_requirements) and user_data[user_id]['xp'] >= xp_requirements[user_data[user_id]['level'] - 1]:
         user_data[user_id]['level'] += 1
 
     user_data[user_id]['name'] = author_name
+    user_data[user_id]['avatar'] = str(author_avatar)
+
+    # Update used display names with server ID and last seen timestamp
+    if server_id not in user_data[user_id]['used_display_names']:
+        user_data[user_id]['used_display_names'][server_id] = []
+    
+    found = False
+    for display_name_entry in user_data[user_id]['used_display_names'][server_id]:
+        if display_name_entry['display_name'] == display_name:
+            display_name_entry['last_seen'] = message_time
+            found = True
+            break
+
+    if not found:
+        user_data[user_id]['used_display_names'][server_id].append({
+            'display_name': display_name,
+            'last_seen': message_time
+        })
 
     save_user_data()
 
@@ -172,7 +197,7 @@ async def on_message(message):
     if message.author.bot:
         return
     print(f"{message.author.avatar}")
-    add_xp(message.author.id, message.author.name, 10)
+    add_xp(message.author.id, message.author.name, 10, message.author.display_name, message.author.avatar, message.guild.id)
 
 @bot.slash_command(name="help", description="Get help from the Bot")
 async def help(ctx: discord.ApplicationContext):
