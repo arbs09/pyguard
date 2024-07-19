@@ -106,7 +106,7 @@ def add_xp(user_id, author_name, xp, display_name, author_avatar, server_id, mes
 
 def is_owner(ctx):
     """Checks if the message author is the bot owner."""
-    return ctx.author.id == 706119023422603335
+    return ctx.author.id == 706119023422603335 or ctx.author.id == 1152272215459504188
 
 async def change_status():
     """Changes the bot's status periodically."""
