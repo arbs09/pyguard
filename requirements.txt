@@ -2,4 +2,3 @@ requests
 asyncio
 python-dotenv
 py-cord
-flask
