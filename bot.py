@@ -2,10 +2,8 @@ import discord
 import os
 import random
 import asyncio
-import requests
-import re
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
 from dotenv import load_dotenv
 from discord.ext import commands
 
@@ -41,68 +39,99 @@ def save_user_data():
 # Define XP requirements for each level
 xp_requirements = [20, 50, 100, 400, 1000, 1500]
 
+# Dictionary to keep track of the last XP gain time for each user
+last_xp_time = {}
+
 # Function to add XP
 def add_xp(user_id, author_name, xp, display_name, author_avatar, server_id, message_time=None):
     user_id = str(user_id)
     server_id = str(server_id)
-    current_time = datetime.now().isoformat()
+    current_time = datetime.now()
     
+    # Check if user has received XP in the last minute
+    if user_id in last_xp_time:
+        if current_time - last_xp_time[user_id] < timedelta(minutes=1):
+            return
+
+    last_xp_time[user_id] = current_time
+
     if message_time is None:
-        message_time = current_time
+        message_time = current_time.isoformat()
     else:
         # Ensure message_time is in correct format
         try:
             datetime.fromisoformat(message_time)
         except ValueError:
-            message_time = current_time
+            message_time = current_time.isoformat()
 
     if user_id not in user_data:
         user_data[user_id] = {
-            'xp': 0,
-            'level': 1,
-            'name': author_name,
-            'avatar': str(author_avatar),
-            'used_display_names': {server_id: [{
-                'display_name': display_name,
-                'first_seen': message_time,
-                'last_seen': message_time
-            }]},
-            'first_login': message_time,
-            'last_login': message_time
+            'global': {
+                'xp': 0,
+                'level': 1,
+                'name': author_name,
+                'avatar': str(author_avatar),
+                'first_login': message_time,
+                'last_login': message_time,
+                'used_display_names': {server_id: [{
+                    'display_name': display_name,
+                    'first_seen': message_time,
+                    'last_seen': message_time
+                }]}
+            },
+            'servers': {
+                server_id: {
+                    'xp': 0,
+                    'level': 1
+                }
+            }
         }
     else:
-        if 'first_login' not in user_data[user_id]:
-            user_data[user_id]['first_login'] = message_time
-        if 'last_login' not in user_data[user_id] or message_time > user_data[user_id]['last_login']:
-            user_data[user_id]['last_login'] = message_time
+        user_data[user_id]['global']['name'] = author_name
+        user_data[user_id]['global']['avatar'] = str(author_avatar)
 
-        if server_id not in user_data[user_id]['used_display_names']:
-            user_data[user_id]['used_display_names'][server_id] = []
+        if 'first_login' not in user_data[user_id]['global']:
+            user_data[user_id]['global']['first_login'] = message_time
+        if 'last_login' not in user_data[user_id]['global'] or message_time > user_data[user_id]['global']['last_login']:
+            user_data[user_id]['global']['last_login'] = message_time
+
+        if server_id not in user_data[user_id]['global']['used_display_names']:
+            user_data[user_id]['global']['used_display_names'][server_id] = []
         
         found = False
-        for display_name_entry in user_data[user_id]['used_display_names'][server_id]:
+        for display_name_entry in user_data[user_id]['global']['used_display_names'][server_id]:
             if display_name_entry['display_name'] == display_name:
                 display_name_entry['last_seen'] = message_time
                 found = True
                 break
         
         if not found:
-            user_data[user_id]['used_display_names'][server_id].append({
+            user_data[user_id]['global']['used_display_names'][server_id].append({
                 'display_name': display_name,
                 'first_seen': message_time,
                 'last_seen': message_time
             })
 
-    user_data[user_id]['xp'] += xp
+        if server_id not in user_data[user_id]['servers']:
+            user_data[user_id]['servers'][server_id] = {
+                'xp': 0,
+                'level': 1
+            }
 
-    # Check for level up without resetting XP
-    while user_data[user_id]['level'] <= len(xp_requirements) and user_data[user_id]['xp'] >= xp_requirements[user_data[user_id]['level'] - 1]:
-        user_data[user_id]['level'] += 1
+    # Add XP globally
+    user_data[user_id]['global']['xp'] += xp
+    # Add XP for the specific server
+    user_data[user_id]['servers'][server_id]['xp'] += xp
 
-    user_data[user_id]['name'] = author_name
-    user_data[user_id]['avatar'] = str(author_avatar)
+    # Check for global level up
+    while user_data[user_id]['global']['level'] <= len(xp_requirements) and user_data[user_id]['global']['xp'] >= xp_requirements[user_data[user_id]['global']['level'] - 1]:
+        user_data[user_id]['global']['level'] += 1
 
-    save_user_data() 
+    # Check for server level up
+    while user_data[user_id]['servers'][server_id]['level'] <= len(xp_requirements) and user_data[user_id]['servers'][server_id]['xp'] >= xp_requirements[user_data[user_id]['servers'][server_id]['level'] - 1]:
+        user_data[user_id]['servers'][server_id]['level'] += 1
+
+    save_user_data()
 
 def is_owner(ctx):
     """Checks if the message author is the bot owner."""
@@ -191,7 +220,6 @@ async def on_ready():
         print(f'- {guild.name} (ID: {guild.id})')
         print(f'    - Member count: {guild.member_count}')
     
-    
     await bot.change_presence(status=discord.Status.online)
     bot.loop.create_task(change_status())
 
@@ -205,7 +233,7 @@ async def on_message(message):
 @bot.slash_command(name="help", description="Get help from the Bot")
 async def help(ctx: discord.ApplicationContext):
     embed = discord.Embed(
-        title="Python Discord Bot",
+        title="PyGuard",
         description="Commands:",
         color=0x00b0f4
     )
@@ -216,14 +244,13 @@ async def help(ctx: discord.ApplicationContext):
     embed.add_field(name="/github", value="Shows link to the bot's GitHub repository", inline=False)
     embed.add_field(name="/uptime", value="Shows the Uptime of the bot", inline=False)
 
-
     await ctx.respond(embed=embed, ephemeral=True)
 
 @bot.slash_command(name='github', description="Shows link to the bot's GitHub repository")
 async def github(ctx: discord.ApplicationContext):
 
     embed = discord.Embed(
-        title="Python Discord Bot Github",
+        title="PyGuard Github",
         description="This is a discord bot, coded in Python!\nGitHub: https://github.com/arbs09/python-discordbot",
         color=0x00b0f4
     )
@@ -241,12 +268,11 @@ async def uptime(ctx: discord.ApplicationContext):
     minutes, seconds = divmod(remainder, 60)
 
     embed = discord.Embed(
-        title="Python Discord Bot Uptime",
+        title="PyGuard Uptime",
         description=f"{weeks} weeks, {days} days, {hours} hours, {minutes} minutes, {seconds} seconds",
         color=0x00b0f4
     )
     await ctx.respond(embed=embed, ephemeral=True)
-
 
 @bot.slash_command(name='changestatus', description="changes the status of the bot")
 async def changestatus(ctx: discord.ApplicationContext):
@@ -254,7 +280,7 @@ async def changestatus(ctx: discord.ApplicationContext):
         return
     
     embed = discord.Embed(
-        title="Python Discord Bot Status Change",
+        title="PyGuard Status Change",
         description="Status manually changed!",
         color=0x00b0f4
     )
@@ -262,11 +288,10 @@ async def changestatus(ctx: discord.ApplicationContext):
     await ctx.respond(embed=embed, ephemeral=True)
     await change_status()
 
-
 @bot.slash_command(name="games", description="Get a list of the games of the bot")
 async def games(ctx: discord.ApplicationContext):
     embed = discord.Embed(
-        title="Python Discord Bot",
+        title="PyGuard",
         description="Games:",
         color=0x00b0f4
     )
@@ -279,24 +304,24 @@ async def games(ctx: discord.ApplicationContext):
 async def slots(ctx: discord.ApplicationContext):
 
     embed = discord.Embed(
-        title="Python Discord Bot Slots",
+        title="PyGuard Slots",
         description="This game is currently a work in progress",
         color=0x00b0f4
     )
 
     await ctx.respond(embed=embed, ephemeral=True)
 
-
 @bot.slash_command(name="tools", description="Get a list of the tools of the bot")
 async def tools(ctx: discord.ApplicationContext):
     embed = discord.Embed(
-        title="Python Discord Bot",
+        title="PyGuard",
         description="Tools:",
         color=0x00b0f4
     )
 
     embed.add_field(name="/getuserid", value="Get your discord user id", inline=False)
     embed.add_field(name="/getgloballevel", value="Check your global level and XP", inline=False)
+    embed.add_field(name="/locallevel", value="Check your local server level and XP", inline=False)
 
     await ctx.respond(embed=embed, ephemeral=True)
 
@@ -317,17 +342,17 @@ async def getgloballevel(ctx: discord.ApplicationContext):
     user_id = str(ctx.author.id)
 
     noxpembed = discord.Embed(
-        title="Python Discord Bot Global Level",
+        title="PyGuard Global Level",
         description=f"{ctx.author.mention}, you have no XP yet.",
         color=0x00b0f4
     )
     
     if user_id in user_data:
-        user_level = user_data[user_id]['level']
-        user_xp = user_data[user_id]['xp']
+        user_level = user_data[user_id]['global']['level']
+        user_xp = user_data[user_id]['global']['xp']
 
         embed = discord.Embed(
-            title="Python Discord Bot Global Level",
+            title="PyGuard Global Level",
             description=f"{ctx.author.mention}, you are at level {user_level} with {user_xp} XP globally.",
             color=0x00b0f4
         )
@@ -336,12 +361,35 @@ async def getgloballevel(ctx: discord.ApplicationContext):
     else:
         await ctx.respond(embed=noxpembed, ephemeral=True)
 
+@bot.slash_command(name="locallevel", description="Check your local server level and XP")
+async def locallevel(ctx: discord.ApplicationContext):
+    user_id = str(ctx.author.id)
+    server_id = str(ctx.guild.id)
 
+    noxpembed = discord.Embed(
+        title="PyGuard Local Level",
+        description=f"{ctx.author.mention}, you have no XP yet in this server.",
+        color=0x00b0f4
+    )
+    
+    if user_id in user_data and server_id in user_data[user_id]['servers']:
+        user_level = user_data[user_id]['servers'][server_id]['level']
+        user_xp = user_data[user_id]['servers'][server_id]['xp']
+
+        embed = discord.Embed(
+            title="PyGuard Local Level",
+            description=f"{ctx.author.mention}, you are at level {user_level} with {user_xp} XP in this server.",
+            color=0x00b0f4
+        )
+        
+        await ctx.respond(embed=embed, ephemeral=True)
+    else:
+        await ctx.respond(embed=noxpembed, ephemeral=True)
 
 @bot.slash_command(name="modtools", description="Get a list of the tools for moderators of the bot")
-async def games(ctx: discord.ApplicationContext):
+async def modtools(ctx: discord.ApplicationContext):
     embed = discord.Embed(
-        title="Python Discord Bot",
+        title="PyGuard",
         description="Mod tools:",
         color=0x00b0f4
     )
