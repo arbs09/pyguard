@@ -37,7 +37,7 @@ def save_user_data():
         json.dump(user_data, f, indent=4)
 
 # Define XP requirements for each level
-xp_requirements = [20, 50, 100, 400, 1000, 1500, 2000, 3000, 5000, 7500, 10000]
+xp_requirements = [20, 50, 100, 200, 400, 500, 700, 1000, 1200, 1500, 1750, 2000]
 
 # Dictionary to keep track of the last XP gain time for each user
 last_xp_time = {}
