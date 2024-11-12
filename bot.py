@@ -413,26 +413,4 @@ async def clear(ctx: discord.ApplicationContext, amount: int):
 
 TARGET_LINKS = ["deadshot.io", "venge.io", "othergame1.io", "othergame2.io"]
 
-@bot.slash_command(name="delete_old_links", description="Delete messages with game links older than 24 hours across the server")
-async def delete_old_links(ctx):
-    await ctx.defer()
-    if not ctx.author.guild_permissions.manage_messages:
-        await ctx.respond("You don't have permission to use this command.", ephemeral=True)
-        return
-
-    deleted_messages = 0
-    now = datetime.utcnow()
-    time_threshold = now - timedelta(hours=24)
-
-    for channel in ctx.guild.text_channels:
-        try:
-            async for message in channel.history(limit=100):
-                if any(link in message.content for link in TARGET_LINKS) and message.created_at < time_threshold:
-                    await message.delete()
-                    deleted_messages += 1
-        except discord.Forbidden:
-            pass
-
-    await ctx.respond(f"Deleted {deleted_messages} messages containing old game links across the server.")
-
 bot.run(TOKEN)
