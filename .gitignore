@@ -1,6 +1,4 @@
 .env
 /.venv
 /__pycache__
-levels.json
-guilds.json
-users.json
+database.db
