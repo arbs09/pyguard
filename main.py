@@ -109,6 +109,16 @@ async def whitelist(ctx: discord.ApplicationContext, user_id: int):
 
     await ctx.respond(f'User {user_id} has been whitelisted on this server.', ephemeral=True)
 
+@bot.slash_command(name='ban', description="ban a user (currently only used by bot owners)")
+async def ban(ctx: discord.ApplicationContext, user_id: int):
+    if not is_owner(ctx):
+        await ctx.respond("You don't have permission to use this command.", ephemeral=True)
+        return
+
+    ban_user_network(user_id, "Banned by bot owner")
+
+    await ctx.respond(f'User {user_id} has been banned', ephemeral=True)    
+
 @bot.slash_command(name='ping', description="Get bot latency")
 async def ping(ctx: discord.ApplicationContext):
     await ctx.respond(f'Pong! {round(bot.latency * 1000)}ms', ephemeral=True)

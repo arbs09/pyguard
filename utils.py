@@ -100,6 +100,20 @@ def whitelist_user(user_id, server_id):
     
     return True
     
+def ban_user_network(user_id, reason):
+
+    if not reason:
+        reason = "_"
+
+    connection = get_db_connection()
+    cursor = connection.cursor()
+
+    cursor.execute('INSERT OR IGNORE INTO bad_users (user_id, reason) VALUES (?, ?)', (str(user_id), reason))
+    connection.commit()
+    connection.close()
+
+    return True
+
 # xp
 
 def calculate_level(xp):
