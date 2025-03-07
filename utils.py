@@ -68,6 +68,38 @@ def import_memers_from_server(user_id, user_name, server_id):
     
     return "User imported successfully."
 
+def check_user_on_join(user_id, server_id):
+    connection = get_db_connection()
+    cursor = connection.cursor()
+    
+    cursor.execute('SELECT value FROM server_settings WHERE server_id = ? AND parm = "auto_kick_bad_users_on_join"', (str(server_id),))
+    auto_kick_setting = cursor.fetchone()
+
+    if not auto_kick_setting:
+        cursor.execute('SELECT value FROM server_default_settings WHERE parm = "auto_kick_bad_users_on_join"')
+        auto_kick_setting = cursor.fetchone()
+
+    if auto_kick_setting == '1':
+        cursor.execute('SELECT user_id, reason FROM bad_users WHERE user_id = ?', (str(user_id),))
+        user_banned = cursor.fetchone()
+        if user_banned:
+            return True
+
+    if auto_kick_setting == '0':
+        return False
+    
+    connection.close()
+
+def whitelist_user(user_id, server_id):
+    connection = get_db_connection()
+    cursor = connection.cursor()
+    
+    cursor.execute('INSERT OR IGNORE INTO server_whitelist (user_id, server_id) VALUES (?, ?)', (str(user_id), str(server_id)))
+    connection.commit()
+    connection.close()
+    
+    return True
+    
 # xp
 
 def calculate_level(xp):

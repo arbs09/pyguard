@@ -55,6 +55,14 @@ async def on_guild_join(guild):
 
 @bot.event
 async def on_member_join(member):
+
+    security = check_user_on_join(member.id, member.guild.id)
+
+    if security:
+        await member.guild.owner.send(f'{member.name} ({member.id}) was kicked by pyguard on join. If you wish to whitelist this user, please run anywhere on your server "/whitelist {member.id}"')
+        await member.kick(reason="kicked by pyguard on join")
+        return
+
     import_memers_from_server(member.id, member.name, member.guild.id)
     
 @bot.event
@@ -91,9 +99,15 @@ async def help(ctx: discord.ApplicationContext):
     embed.add_field(name="/uptime", value="Get bot uptime", inline=False)
     await ctx.respond(embed=embed, ephemeral=True)
 
-@bot.slash_command(name='invite', description="Join a new server")
-async def invite(ctx: discord.ApplicationContext):
-    await ctx.respond("You can invite me to your server using this link: https://pyguard.arbs09.dev/invite", ephemeral=True)
+@bot.slash_command(name='whitelist', description="Whitelist a user")
+async def whitelist(ctx: discord.ApplicationContext, user_id: int):
+    if not ctx.author.guild_permissions.unban and not is_owner(ctx):
+        await ctx.respond("You don't have permission to use this command.", ephemeral=True)
+        return
+
+    whitelist_user(user_id, ctx.guild.id)
+
+    await ctx.respond(f'User {user_id} has been whitelisted on this server.', ephemeral=True)
 
 @bot.slash_command(name='ping', description="Get bot latency")
 async def ping(ctx: discord.ApplicationContext):

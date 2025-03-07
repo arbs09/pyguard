@@ -22,5 +22,9 @@ connection.execute('INSERT OR IGNORE INTO statuses (type, status) VALUES (?, ?)'
 connection.execute('INSERT OR IGNORE INTO statuses (type, status) VALUES (?, ?)', ('listening', 'to a cd'))
 connection.execute('INSERT OR IGNORE INTO statuses (type, status) VALUES (?, ?)', ('listening', 'to Darknet Diaries'))
 
+# server defaults
+connection.execute('INSERT OR IGNORE INTO server_default_settings (parm, value) VALUES (?, ?)', ('auto_kick_bad_users_on_join', '1'))
+connection.execute('INSERT OR IGNORE INTO server_default_settings (parm, value) VALUES (?, ?)', ('warn_server_owner_on_member_warning', '1'))
+
 connection.commit()
 connection.close()
