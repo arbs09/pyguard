@@ -50,6 +50,9 @@ async def on_ready():
 async def on_guild_join(guild):
     print(f'Joined new guild: {guild.name}')
 
+    async for member in guild.fetch_members(limit=None):
+        import_memers_from_server(member.id, member.name, guild.id)
+
 @bot.event
 async def on_member_join(member):
     import_memers_from_server(member.id, member.name, member.guild.id)
