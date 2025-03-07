@@ -2,7 +2,7 @@ import sqlite3
 import re
 
 def get_db_connection():
-    connection = sqlite3.connect('database.db')
+    connection = sqlite3.connect('db/database.db')
     connection.row_factory = sqlite3.Row
     return connection
 
