@@ -80,10 +80,15 @@ async def on_message(message):
 @bot.slash_command(name='help', description="Get help")
 async def help(ctx: discord.ApplicationContext):
     embed = discord.Embed(title="Help", description="List of available commands", color=discord.Color.blue())
-    embed.add_field(name="/ping", value="Get bot latency", inline=False)
+    embed.add_field(name="/clean_old", value="Clear the 100 oldest messages in a channel", inline=False)
     embed.add_field(name="/cleanup", value="Clear messages in a channel", inline=False)
-    embed.add_field(name="/uptime", value="Get bot uptime", inline=False)
+    embed.add_field(name="/daten-export", value="Exportiere deine Daten", inline=False)
+    embed.add_field(name="/get_global", value="Get your global level", inline=False)
+    embed.add_field(name="/get_server", value="Get your server level", inline=False)
+    embed.add_field(name="/getuserid", value="Get the ID of the user running the command", inline=False)
     embed.add_field(name="/help", value="Get help", inline=False)
+    embed.add_field(name="/ping", value="Get bot latency", inline=False)
+    embed.add_field(name="/uptime", value="Get bot uptime", inline=False)
     await ctx.respond(embed=embed, ephemeral=True)
 
 @bot.slash_command(name='invite', description="Join a new server")
