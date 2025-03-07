@@ -1,0 +1,7 @@
+services:
+  bot:
+    container_name: pyguard_bot
+    image: ghcr.io/arbs09/pyguard:main
+    restart: unless-stopped
+    volumes:
+      - .env:/app/.env:ro
