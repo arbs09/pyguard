@@ -72,6 +72,12 @@ async def on_message(message):
     if message.author.bot:
         return
 
+    if message.content.startswith('.own'):
+        if not is_owner(message):
+            return
+        if "undercover" in message.content:
+            await bot.change_presence(status=discord.Status.dnd)
+
     give_global_xp(message.author, 10)
     give_server_xp(message.author, message.guild, 10)
 
