@@ -4,7 +4,7 @@ import json
 def is_owner(ctx):
     connection = get_db_connection()
     cursor = connection.cursor()
-    cursor.execute('SELECT * FROM owners WHERE owner_id = ?', (str(ctx.author.id),))
+    cursor.execute('SELECT user_id FROM bot_owners WHERE user_id = ?', (str(ctx.author.id),))
     owner = cursor.fetchone()
     connection.close()
     return str(ctx.author.id) in owner
