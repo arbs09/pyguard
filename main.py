@@ -84,8 +84,6 @@ async def on_message(message):
     give_global_xp(message.author, 10)
     give_server_xp(message.author, message.guild, 10)
 
-    await bot.process_commands(message)
-
 @bot.slash_command(name='help', description="Get help")
 async def help(ctx: discord.ApplicationContext):
     embed = discord.Embed(title="Help", description="List of available commands", color=discord.Color.blue())
