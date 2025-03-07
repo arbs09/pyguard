@@ -51,6 +51,10 @@ async def on_guild_join(guild):
     print(f'Joined new guild: {guild.name}')
 
 @bot.event
+async def on_member_join(member):
+    import_memers_from_server(member.id, member.name, member.guild.id)
+    
+@bot.event
 async def on_guild_update(before, after):
     if before.name != after.name:
         print(f'Guild {before.name} changed name to {after.name}')
