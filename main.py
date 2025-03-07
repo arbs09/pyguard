@@ -32,7 +32,7 @@ async def change_status():
                 await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name=status))
             elif type_ == 'listening':
                 await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.listening, name=status))
-            await asyncio.sleep(10)
+            await asyncio.sleep(60)
         
 @bot.event
 async def on_ready():
