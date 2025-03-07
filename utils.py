@@ -12,6 +12,23 @@ def is_owner(ctx):
 def is_server_owner(ctx):
     return ctx.author.id == ctx.guild.owner_id
 
+def get_statuses():
+    connection = get_db_connection()
+    cursor = connection.cursor()
+    cursor.execute('SELECT type, status FROM statuses')
+    rows = cursor.fetchall()
+    connection.close()
+
+    statuses = {}
+    for row in rows:
+        type_ = row[0]
+        status = row[1]
+        if type_ not in statuses:
+            statuses[type_] = []
+        statuses[type_].append(status)
+    
+    return json.dumps(statuses)
+
 def user_data_export(ctx):
     connection = get_db_connection()
     cursor = connection.cursor()

@@ -3,9 +3,10 @@ from discord.ext import commands
 import asyncio
 import os
 from dotenv import load_dotenv
+import random
 
 # custom imports
-from utils import is_owner, user_data_export, import_memers_from_server, give_global_xp, get_global, give_server_xp, get_server
+from utils import *
 from uptime import get_uptime
 
 load_dotenv()
@@ -19,6 +20,20 @@ intents.presences = True
 
 bot = discord.Bot(intents=intents)
 
+async def change_status():
+    await bot.wait_until_ready()
+    while not bot.is_closed():
+        statuses = json.loads(get_statuses())
+        for type_, status_list in statuses.items():
+            status = random.choice(status_list)
+            if type_ == 'playing':
+                await bot.change_presence(activity=discord.Game(name=status))
+            elif type_ == 'watching':
+                await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name=status))
+            elif type_ == 'listening':
+                await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.listening, name=status))
+            await asyncio.sleep(10)
+        
 @bot.event
 async def on_ready():
     print(f'{bot.user} has connected to Discord!')
@@ -27,6 +42,9 @@ async def on_ready():
         print(f'Connected to guild: {guild.name}')
         async for member in guild.fetch_members(limit=None):
             import_memers_from_server(member.id, member.name, guild.id)
+    
+    await bot.change_presence(status=discord.Status.online)
+    bot.loop.create_task(change_status())
 
 @bot.event
 async def on_guild_join(guild):
@@ -107,10 +125,29 @@ async def uptime(ctx: discord.ApplicationContext):
 async def daten_export(ctx: discord.ApplicationContext):
     user = ctx.author
 
+    embed = discord.Embed(
+        title="Deine Daten",
+        description="Deine Daten wurden dir per PM gesendet.",
+        color=0x00b0f4
+    )
+
     message = "Deine Daten welche wir über dein Discord Profil gespeichert haben:\n"
 
     await user.send(message + user_data_export(ctx))
-    await ctx.respond("Deine Daten wurden dir per PM gesendet.", ephemeral=True)
+    await ctx.respond(embed=embed, ephemeral=True)
+
+
+@bot.slash_command(name='getuserid', description="Get the ID of the user running the command")
+async def get_user_id(ctx: discord.ApplicationContext):
+    user_id = ctx.author.id
+
+    embed = discord.Embed(
+        title="Your User ID:",
+        description=f"{user_id}",
+        color=0x00b0f4
+    )
+
+    await ctx.respond(embed=embed, ephemeral=True)
 
 # xp
 
