@@ -58,6 +58,8 @@ async def on_member_join(member):
 
     security = check_user_on_join(member.id, member.guild.id)
 
+    print(f`User {member.name} joined {member.guild.name} with security: {security}`)
+
     if security:
         await member.send(f'You have been banned from {member.guild.name} by pyguard.')
         await member.guild.owner.send(f'{member.name} ({member.id}) was kicked by pyguard on join. If you wish to whitelist this user, please run anywhere on your server "/whitelist {member.id}"')
