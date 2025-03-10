@@ -58,7 +58,7 @@ async def on_member_join(member):
 
     security = check_user_on_join(member.id, member.guild.id)
 
-    print(f`User {member.name} joined {member.guild.name} with security: {security}`)
+    print(f"User {member.name} joined {member.guild.name} with security: {security}")
 
     if security:
         await member.send(f'You have been banned from {member.guild.name} by pyguard.')
